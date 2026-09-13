@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ include "checkout-svc.fullname" . }}-analysis
+  labels:
+    {{- include "checkout-svc.labels" . | nindent 4 }}
+spec:
+  metrics:
+    - name: error-rate
+      interval: 30s
+      count: 2
+      failureLimit: 1
+      successCondition: result[0] < {{ .Values.analysis.errorRateThreshold }}
+      provider:
+        prometheus:
+          address: {{ .Values.analysis.prometheusAddress }}
+          query: |
+            (
+              sum(rate(driftguard_http_requests_total{service="checkout-svc",status=~"5.."}[2m]))
+              /
+              clamp_min(sum(rate(driftguard_http_requests_total{service="checkout-svc"}[2m])), 1)
+            )
+    - name: p95-latency
+      interval: 30s
+      count: 2
+      failureLimit: 1
+      successCondition: result[0] < {{ .Values.analysis.p95LatencyThresholdSeconds }}
+      provider:
+        prometheus:
+          address: {{ .Values.analysis.prometheusAddress }}
+          query: |
+            histogram_quantile(
+              0.95,
+              sum(rate(driftguard_http_request_duration_seconds_bucket{service="checkout-svc"}[2m])) by (le)
+            ) or vector(0)

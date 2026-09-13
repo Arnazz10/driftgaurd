@@ -1,0 +1,10 @@
+replicaCount: 3
+
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/payments-svc
+  tag: v1
+
+env:
+  version: v1
+  failRate: "0"
+

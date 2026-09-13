@@ -1,0 +1,7 @@
+apiVersion: v2
+name: payments-svc
+description: DriftGuard payments service with blue-green delivery.
+type: application
+version: 0.1.0
+appVersion: "v1"
+

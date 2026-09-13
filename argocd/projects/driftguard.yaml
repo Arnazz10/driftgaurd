@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: driftguard
+  namespace: argocd
+spec:
+  description: DriftGuard GitOps applications
+  sourceRepos:
+    - https://github.com/Arnazz10/DriftGuard.git
+  destinations:
+    - namespace: dev
+      server: https://kubernetes.default.svc
+    - namespace: prod
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+

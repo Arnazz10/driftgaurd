@@ -1,0 +1,10 @@
+replicaCount: 4
+
+image:
+  repository: REPLACE_WITH_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/checkout-svc
+  tag: v1
+
+env:
+  version: v1
+  failRate: "0"
+

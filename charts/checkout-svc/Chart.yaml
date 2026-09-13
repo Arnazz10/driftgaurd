@@ -1,0 +1,7 @@
+apiVersion: v2
+name: checkout-svc
+description: DriftGuard checkout service with metric-gated canary delivery.
+type: application
+version: 0.1.0
+appVersion: "v1"
+

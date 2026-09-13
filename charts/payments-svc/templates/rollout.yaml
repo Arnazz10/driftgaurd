@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "payments-svc.fullname" . }}
+  labels:
+    {{- include "payments-svc.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "payments-svc.selectorLabels" . | nindent 6 }}
+  strategy:
+    blueGreen:
+      activeService: {{ include "payments-svc.fullname" . }}
+      previewService: {{ include "payments-svc.fullname" . }}-preview
+      autoPromotionEnabled: false
+      scaleDownDelaySeconds: 30
+      prePromotionAnalysis:
+        templates:
+          - templateName: {{ include "payments-svc.fullname" . }}-analysis
+  template:
+    metadata:
+      labels:
+        {{- include "payments-svc.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: payments-svc
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: SERVICE_NAME
+              value: payments-svc
+            - name: VERSION
+              value: {{ .Values.env.version | quote }}
+            - name: FAIL_RATE
+              value: {{ .Values.env.failRate | quote }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+

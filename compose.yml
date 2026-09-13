@@ -1,0 +1,33 @@
+services:
+  frontend:
+    build:
+      context: ./apps/frontend
+    image: driftguard-frontend:local
+    container_name: driftguard-frontend-local
+    depends_on:
+      - checkout-svc
+      - payments-svc
+    ports:
+      - "3000:80"
+
+  checkout-svc:
+    build:
+      context: ./apps/checkout-svc
+    image: driftguard-checkout:local
+    container_name: driftguard-checkout-local
+    environment:
+      VERSION: local
+      FAIL_RATE: "0"
+    ports:
+      - "8081:8080"
+
+  payments-svc:
+    build:
+      context: ./apps/payments-svc
+    image: driftguard-payments:local
+    container_name: driftguard-payments-local
+    environment:
+      VERSION: local
+      FAIL_RATE: "0"
+    ports:
+      - "8082:8080"

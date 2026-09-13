@@ -1,0 +1,85 @@
+name: service-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "charts/**/values-*.yaml"
+  pull_request:
+    paths:
+      - "apps/**"
+      - "charts/**"
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [checkout-svc, payments-svc]
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.1"
+          cache-dependency-path: apps/${{ matrix.service }}/go.mod
+
+      - name: Test
+        working-directory: apps/${{ matrix.service }}
+        run: go test ./...
+
+      - name: Configure AWS credentials
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v6.1.2
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to ECR
+        if: github.event_name == 'push'
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image
+        if: github.event_name == 'push'
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t "$ECR_REGISTRY/${{ matrix.service }}:$IMAGE_TAG" "apps/${{ matrix.service }}"
+
+      - name: Scan image
+        if: github.event_name == 'push'
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          image-ref: ${{ steps.ecr.outputs.registry }}/${{ matrix.service }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+      - name: Push image
+        if: github.event_name == 'push'
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker push "$ECR_REGISTRY/${{ matrix.service }}:$IMAGE_TAG"
+
+      - name: Bump dev image tag
+        if: github.event_name == 'push'
+        uses: mikefarah/yq@v4.44.3
+        with:
+          cmd: |
+            yq -i '.image.tag = strenv(GITHUB_SHA) | .env.version = strenv(GITHUB_SHA)' charts/${{ matrix.service }}/values-dev.yaml
+
+      - name: Commit GitOps tag bump
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add charts/${{ matrix.service }}/values-dev.yaml
+          git commit -m "deploy: bump ${{ matrix.service }} to ${{ github.sha }}" || exit 0
+          git push

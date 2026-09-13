@@ -1,0 +1,30 @@
+grafana:
+  adminPassword: REPLACE_WITH_TEMPORARY_BOOTSTRAP_PASSWORD
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+  service:
+    type: ClusterIP
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    serviceMonitorSelector: {}
+    retention: 2d
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1
+        memory: 1Gi
+
+alertmanager:
+  enabled: true
+
+kube-state-metrics:
+  metricLabelsAllowlist:
+    - pods=[app.kubernetes.io/name,app.kubernetes.io/instance]
+
