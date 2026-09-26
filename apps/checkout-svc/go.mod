@@ -1,6 +1,6 @@
 module github.com/example/driftguard/apps/checkout-svc
 
-go 1.26
+go 1.23
 
 require github.com/prometheus/client_golang v1.23.0
 
