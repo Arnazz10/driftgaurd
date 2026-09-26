@@ -234,9 +234,63 @@ function statusClass(state) {
   return "pending";
 }
 
+const routes = ["home", "insights", "signals", "entities"];
+const routeLabels = {
+  home: "Home",
+  insights: "Insight",
+  signals: "Signals",
+  entities: "Entities",
+};
+
+function getRouteFromHash() {
+  const hash = window.location.hash.replace(/^#/, "").toLowerCase();
+  return routes.includes(hash) ? hash : "home";
+}
+
+function setRouteHash(route) {
+  const next = `#${route}`;
+  if (window.location.hash !== next) {
+    window.location.hash = next;
+  }
+}
+
+function formatClockLabel(date = new Date()) {
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function handleActivation(action) {
+  return (event) => {
+    if (event.type === "keydown" && event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    action();
+  };
+}
+
+function buildHistorySeries(history, valueKey) {
+  return history.map((item) => ({
+    time: item.time,
+    value: item[valueKey],
+  }));
+}
+
+function LiveLogo() {
+  return h(
+    "svg",
+    { className: "dg-logo", viewBox: "0 0 40 40", "aria-hidden": "true" },
+    h("path", {
+      d: "M20 3l11 4v9c0 8-4.5 14.7-11 21-6.5-6.3-11-13-11-21V7l11-4z",
+    }),
+    h("path", {
+      d: "M20 10v19m-6-7h12",
+    }),
+  );
+}
+
 function App() {
-  const [environment, setEnvironment] = useState("dev");
+  const [page, setPage] = useState(() => (typeof window !== "undefined" ? getRouteFromHash() : "home"));
+  const [selectedService, setSelectedService] = useState("checkout");
   const [serviceState, setServiceState] = useState({});
+  const [historyState, setHistoryState] = useState({ checkout: [], payments: [] });
   const [lastCheck, setLastCheck] = useState("Waiting for first refresh");
 
   async function refresh() {
@@ -274,7 +328,29 @@ function App() {
       }),
     );
 
+    const stamp = formatClockLabel();
+
     setServiceState(next);
+    setHistoryState((current) => {
+      const nextHistory = { checkout: [...(current.checkout || [])], payments: [...(current.payments || [])] };
+
+      services.forEach((service) => {
+        const live = next[service.key] || {};
+        nextHistory[service.key] = [
+          ...(nextHistory[service.key] || []).slice(-5),
+          {
+            time: stamp,
+            requests: live.requests || 0,
+            errorRate: Number((live.errorRate || 0).toFixed(2)),
+            p99Ms: live.p99Ms || 0,
+            health: live.online ? "online" : "down",
+            version: live.root?.version || "n/a",
+          },
+        ].slice(-8);
+      });
+
+      return nextHistory;
+    });
     setLastCheck(new Date().toLocaleString());
   }
 
@@ -284,89 +360,473 @@ function App() {
     return () => clearInterval(timer);
   }, []);
 
-  const envData = environments[environment];
+  useEffect(() => {
+    const syncRoute = () => setPage(getRouteFromHash());
+    window.addEventListener("hashchange", syncRoute);
+    return () => window.removeEventListener("hashchange", syncRoute);
+  }, []);
+
+  useEffect(() => {
+    setRouteHash(page);
+  }, [page]);
+
   const checkoutState = serviceState.checkout || {};
   const paymentsState = serviceState.payments || {};
-  const checkoutSeries = metricSeries(envData.checkout.chartOffset, checkoutState);
-  const paymentsSeries = metricSeries(envData.payments.chartOffset, paymentsState);
-  const combinedRequests = (checkoutState.requests || 0) + (paymentsState.requests || 0);
-  const scanProgress = Math.min(
-    96,
-    Math.max(
-      48,
-      Math.round(58 + envData.checkout.currentStage * 0.18 + (checkoutState.errorRate || 0) * 1.4),
-    ),
-  );
-  const issueCards = [
-    {
-      title: "User issue",
-      detail: `${combinedRequests || 498} requests observed today`,
-      tone: "dim",
-      icon: "◌",
-    },
-    {
-      title: "Break issue",
-      detail: `Canary at ${envData.checkout.currentStage}% live traffic`,
-      tone: "warning",
-      icon: "⟲",
-    },
-    {
-      title: "Memory issue",
-      detail: `${checkoutState.p99Ms || envData.checkout.currentStage + 81}ms p99 on checkout`,
-      tone: "dim",
-      icon: "▣",
-    },
-    {
-      title: "Reports and order",
-      detail: `${envData.rollbacks.length} rollback notes available`,
-      tone: "dim",
-      icon: "▤",
-    },
-  ];
-  const issueHighlight = issueCards.findIndex((card) => card.tone === "warning");
-  const activityData = checkoutSeries.map((point, index) => ({
-    ...point,
-    requests: Math.round((checkoutState.requests || 210) / 4 + index * 20 + envData.checkout.chartOffset * 12),
-    assists: Math.round((paymentsState.requests || 160) / 6 + index * 12 + envData.payments.chartOffset * 10),
+  const liveServices = services.map((service) => ({
+    ...service,
+    state: serviceState[service.key] || {},
+    history: historyState[service.key] || [],
   }));
-  const deviceData = paymentsSeries.map((point, index) => ({
-    ...point,
-    scans: Math.round((paymentsState.p99Ms || 160) / 3 + index * 6 + envData.payments.chartOffset * 8),
-  }));
-  const navLinks = ["Home", "Insight", "Signals", "Entities"];
+  const totalRequests = liveServices.reduce((sum, service) => sum + (service.state.requests || 0), 0);
+  const onlineCount = liveServices.filter((service) => service.state.online).length;
+  const maxLatency = Math.max(...liveServices.map((service) => service.state.p99Ms || 0), 0);
+  const totalErrors = liveServices.reduce((sum, service) => sum + Math.round((service.state.requests || 0) * ((service.state.errorRate || 0) / 100)), 0);
+  const checkoutHistory = buildHistorySeries(historyState.checkout, "requests");
+  const checkoutErrorHistory = buildHistorySeries(historyState.checkout, "errorRate");
+  const checkoutLatencyHistory = buildHistorySeries(historyState.checkout, "p99Ms");
+  const paymentsHistory = buildHistorySeries(historyState.payments, "requests");
+  const paymentsErrorHistory = buildHistorySeries(historyState.payments, "errorRate");
+  const selected = liveServices.find((service) => service.key === selectedService) || liveServices[0];
+  const selectedTrend = selected.key === "checkout" ? checkoutHistory : paymentsHistory;
+  const selectedErrorTrend = selected.key === "checkout" ? checkoutErrorHistory : paymentsErrorHistory;
+  const selectedLatencyTrend = selected.key === "checkout" ? checkoutLatencyHistory : buildHistorySeries(historyState.payments, "p99Ms");
+  const alerts = liveServices
+    .filter((service) => (service.state.errorRate || 0) > 1 || !(service.state.online ?? false))
+    .map((service) => ({
+      label: service.name,
+      message: service.state.online ? `${service.state.errorRate.toFixed(2)}% error rate` : "service is offline",
+      tone: service.state.online ? "warning" : "down",
+    }));
+  const pageMeta = {
+    home: {
+      title: "Live overview",
+      description: "Real service health and request telemetry from checkout and payments.",
+    },
+    insights: {
+      title: "Insights",
+      description: "Live request, latency, and error trends from the running services.",
+    },
+    signals: {
+      title: "Signals",
+      description: "Active alerts, failures, and health transitions detected from real probes.",
+    },
+    entities: {
+      title: "Entities",
+      description: "Service details, live payloads, and the current API responses.",
+    },
+  }[page];
 
   const payload = useMemo(
     () => ({
-      environment,
+      page,
       lastCheck,
-      checkout: serviceState.checkout?.root || serviceState.checkout || {},
-      payments: serviceState.payments?.root || serviceState.payments || {},
-      rollout: envData,
+      services: liveServices.map((service) => ({
+        key: service.key,
+        name: service.name,
+        online: service.state.online,
+        root: service.state.root || null,
+        requests: service.state.requests || 0,
+        errorRate: service.state.errorRate || 0,
+        p99Ms: service.state.p99Ms || 0,
+      })),
+      history: historyState,
     }),
-    [environment, envData, lastCheck, serviceState],
+    [historyState, lastCheck, liveServices, page],
   );
 
   return h(
-    DriftguardDashboard,
+    DriftguardLiveApp,
     {
-      environment,
-      onEnvironmentChange: setEnvironment,
+      page,
+      onNavigate: setPage,
       onRefresh: refresh,
       lastCheck,
-      navLinks,
-      issueCards,
-      issueHighlight,
-      activityData,
-      deviceData,
-      checkoutState,
-      paymentsState,
-      envData,
-      scanProgress,
-      combinedRequests,
+      pageMeta,
+      liveServices,
+      totalRequests,
+      onlineCount,
+      totalErrors,
+      maxLatency,
+      selected,
+      selectedTrend,
+      selectedErrorTrend,
+      selectedLatencyTrend,
+      alerts,
       payload,
-      checkoutSeries,
-      paymentsSeries,
+      selectedService,
+      onSelectService: setSelectedService,
     },
+  );
+}
+
+function DriftguardLiveApp({
+  page,
+  onNavigate,
+  onRefresh,
+  lastCheck,
+  pageMeta,
+  liveServices,
+  totalRequests,
+  onlineCount,
+  totalErrors,
+  maxLatency,
+  selected,
+  selectedTrend,
+  selectedErrorTrend,
+  selectedLatencyTrend,
+  alerts,
+  payload,
+  selectedService,
+  onSelectService,
+}) {
+  return h(
+    "main",
+    { className: "dg-app dg-app-full" },
+    h(
+      "header",
+      { className: "dg-topbar" },
+      h(
+        "button",
+        {
+          type: "button",
+          className: "dg-brand",
+          onClick: () => onNavigate("home"),
+          "aria-label": "Go to home",
+        },
+        h(LiveLogo),
+        h(
+          "div",
+          null,
+          h("strong", null, "DriftGuard"),
+          h("span", null, "GitOps command center"),
+        ),
+      ),
+      h(
+        "label",
+        { className: "dg-search" },
+        h("span", { "aria-hidden": "true" }, "⌕"),
+        h("input", {
+          type: "search",
+          placeholder: "Search services, pages, or signals",
+          "aria-label": "Search dashboard",
+        }),
+      ),
+      h(
+        "nav",
+        { className: "dg-nav", "aria-label": "Primary" },
+        routes.map((route) =>
+          h(
+            "button",
+            {
+              key: route,
+              type: "button",
+              className: `dg-nav-link ${page === route ? "active" : ""}`,
+              onClick: () => onNavigate(route),
+            },
+            routeLabels[route],
+          ),
+        ),
+      ),
+      h(
+        "div",
+        { className: "dg-tools" },
+        h("button", { className: "dg-icon", type: "button", onClick: onRefresh, "aria-label": "Refresh data" }, "↻"),
+        h("button", { className: "dg-icon", type: "button", onClick: () => onNavigate("signals"), "aria-label": "Open signals" }, "⚑"),
+        h("button", { className: "dg-avatar-chip", type: "button", onClick: () => onNavigate("entities"), "aria-label": "Open entities" }, h("span", null, "A")),
+      ),
+    ),
+    h(
+      "section",
+      { className: "dg-hero" },
+      h(
+        "div",
+        null,
+        h("p", { className: "dg-kicker" }, "Real-time DriftGuard"),
+        h("h1", null, pageMeta.title),
+        h("p", { className: "dg-hero-copy" }, pageMeta.description),
+      ),
+      h(
+        "div",
+        { className: "dg-hero-meta" },
+        h("div", { className: "dg-kpi" }, h("span", null, "Online"), h("strong", null, `${onlineCount}/${liveServices.length}`)),
+        h("div", { className: "dg-kpi" }, h("span", null, "Requests"), h("strong", null, String(totalRequests))),
+        h("div", { className: "dg-kpi" }, h("span", null, "Errors"), h("strong", null, String(totalErrors))),
+        h("div", { className: "dg-kpi" }, h("span", null, "p99 latency"), h("strong", null, `${maxLatency}ms`)),
+      ),
+    ),
+    page === "home" && h(HomePage, { liveServices, onNavigate, onSelectService, selectedService, onRefresh }),
+    page === "insights" && h(InsightsPage, { liveServices, selectedTrend, selectedErrorTrend, selectedLatencyTrend, onSelectService, onNavigate }),
+    page === "signals" && h(SignalsPage, { alerts, liveServices, onNavigate, onSelectService }),
+    page === "entities" && h(EntitiesPage, { liveServices, selected, payload, lastCheck, onSelectService, onNavigate }),
+    h(
+      "footer",
+      { className: "dg-footer" },
+      h("span", null, `Last refresh ${lastCheck}`),
+      h("button", { type: "button", className: "dg-footer-action", onClick: onRefresh }, "Refresh live data"),
+    ),
+    h(
+      "svg",
+      { className: "dg-defs", viewBox: "0 0 10 10", "aria-hidden": "true" },
+      h(
+        "defs",
+        null,
+        h(
+          "linearGradient",
+          { id: "dg-bar", x1: "0%", y1: "0%", x2: "100%", y2: "0%" },
+          h("stop", { offset: "0%", stopColor: "#f3d49f" }),
+          h("stop", { offset: "55%", stopColor: "#9fd8e1" }),
+          h("stop", { offset: "100%", stopColor: "#f7b56e" }),
+        ),
+      ),
+    ),
+  );
+}
+
+function HomePage({ liveServices, onNavigate, onSelectService, selectedService, onRefresh }) {
+  const heroSummary = liveServices.map((service) => ({
+    ...service,
+    requests: service.state.requests || 0,
+    errorRate: service.state.errorRate || 0,
+    p99Ms: service.state.p99Ms || 0,
+  }));
+  const selected = heroSummary.find((service) => service.key === selectedService) || heroSummary[0];
+  const trendData = (selected?.history || []).map((item) => ({ time: item.time, value: item.requests }));
+
+  return h(
+    "section",
+    { className: "dg-page-grid" },
+    h(
+      "div",
+      { className: "dg-page-main" },
+      h(
+        "div",
+        { className: "dg-panel-grid" },
+        heroSummary.map((service) =>
+          h(
+            "article",
+            {
+              key: service.key,
+              className: `dg-service-card ${selectedService === service.key ? "active" : ""}`,
+              role: "button",
+              tabIndex: 0,
+              onClick: () => onSelectService(service.key),
+              onKeyDown: handleActivation(() => onSelectService(service.key)),
+            },
+            h("div", { className: "dg-card-top" }, h("strong", null, service.name), h("span", null, service.state.online ? "Online" : "Down")),
+            h("p", null, service.state.root?.version || "Waiting for live data"),
+            h(
+              "div",
+              { className: "dg-metric-strip" },
+              h("div", null, h("small", null, "Requests"), h("strong", null, String(service.requests))),
+              h("div", null, h("small", null, "Error rate"), h("strong", null, `${service.errorRate.toFixed(2)}%`)),
+              h("div", null, h("small", null, "p99"), h("strong", null, `${service.p99Ms}ms`)),
+            ),
+            h("button", { type: "button", className: "dg-card-link", onClick: () => onNavigate("entities") }, "Open entity"),
+          ),
+        ),
+      ),
+      h(
+        "article",
+        { className: "dg-chart-card" },
+        h("div", { className: "dg-section-head" }, h("strong", null, "Live request trend"), h("button", { type: "button", className: "dg-inline-btn", onClick: onRefresh }, "Refresh")),
+        h(TrendChart, { data: trendData, stroke: selectedService === "checkout" ? "#8fd8e3" : "#f0b56d", suffix: " requests" }),
+      ),
+    ),
+    h(
+      "aside",
+      { className: "dg-sidebar" },
+      h(
+        "article",
+        { className: "dg-compact-card" },
+        h("div", { className: "dg-section-head" }, h("strong", null, "Quick actions"), h("span", null, "Clickable")),
+        h(
+          "div",
+          { className: "dg-action-list" },
+          [
+            ["Insights", "insights"],
+            ["Signals", "signals"],
+            ["Entities", "entities"],
+          ].map(([label, route]) =>
+            h(
+              "button",
+              { key: route, type: "button", className: "dg-action-row", onClick: () => onNavigate(route) },
+              h("span", null, label),
+              h("strong", null, "→"),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+function InsightsPage({ liveServices, selectedTrend, selectedErrorTrend, selectedLatencyTrend, onSelectService, onNavigate }) {
+  return h(
+    "section",
+    { className: "dg-page-grid" },
+    h(
+      "div",
+      { className: "dg-page-main" },
+      h(
+        "article",
+        { className: "dg-chart-card" },
+        h("div", { className: "dg-section-head" }, h("strong", null, "Requests over time"), h("span", null, "Real samples from API")),
+        h(TrendChart, { data: selectedTrend, stroke: "#8fd8e3", suffix: " req" }),
+      ),
+      h(
+        "article",
+        { className: "dg-chart-card" },
+        h("div", { className: "dg-section-head" }, h("strong", null, "Error rate trend"), h("span", null, "Based on live metrics")),
+        h(TrendChart, { data: selectedErrorTrend, stroke: "#f0b56d", suffix: "%" }),
+      ),
+      h(
+        "article",
+        { className: "dg-chart-card" },
+        h("div", { className: "dg-section-head" }, h("strong", null, "Latency trend"), h("span", null, "p99 in milliseconds")),
+        h(TrendChart, { data: selectedLatencyTrend, stroke: "#ab8df2", suffix: "ms" }),
+      ),
+    ),
+    h(
+      "aside",
+      { className: "dg-sidebar" },
+      liveServices.map((service) =>
+        h(
+          "button",
+          {
+            key: service.key,
+            type: "button",
+            className: "dg-service-mini",
+            onClick: () => onSelectService(service.key),
+          },
+          h("strong", null, service.name),
+          h("span", null, `${service.state.requests || 0} req • ${service.state.errorRate?.toFixed(2) || "0.00"}%`),
+        ),
+      ),
+      h("button", { type: "button", className: "dg-action-row", onClick: () => onNavigate("signals") }, h("span", null, "Open signals"), h("strong", null, "→")),
+    ),
+  );
+}
+
+function SignalsPage({ alerts, liveServices, onNavigate, onSelectService }) {
+  const signalItems = alerts.length
+    ? alerts
+    : liveServices.map((service) => ({
+        label: service.name,
+        message: `Live and healthy • ${service.state.requests || 0} requests`,
+        tone: "ok",
+      }));
+
+  return h(
+    "section",
+    { className: "dg-page-grid" },
+    h(
+      "div",
+      { className: "dg-page-main" },
+      h(
+        "article",
+        { className: "dg-issue-board" },
+        signalItems.map((item) =>
+          h(
+            "button",
+            {
+              key: `${item.label}-${item.message}`,
+              type: "button",
+              className: `dg-issue-row ${item.tone}`,
+              onClick: () => onNavigate("entities"),
+            },
+            h("strong", null, item.label),
+            h("span", null, item.message),
+            h("em", null, "Open"),
+          ),
+        ),
+      ),
+    ),
+    h(
+      "aside",
+      { className: "dg-sidebar" },
+      liveServices.map((service) =>
+        h(
+          "button",
+          { key: service.key, type: "button", className: "dg-service-mini", onClick: () => onSelectService(service.key) },
+          h("strong", null, service.name),
+          h("span", null, service.state.online ? "Healthy" : "Offline"),
+        ),
+      ),
+    ),
+  );
+}
+
+function EntitiesPage({ liveServices, selected, payload, lastCheck, onSelectService, onNavigate }) {
+  return h(
+    "section",
+    { className: "dg-page-grid" },
+    h(
+      "div",
+      { className: "dg-page-main" },
+      h(
+        "article",
+        { className: "dg-entity-card" },
+        h("div", { className: "dg-section-head" }, h("strong", null, selected.name), h("span", null, selected.state.online ? "Online" : "Down")),
+        h("p", null, selected.state.root ? JSON.stringify(selected.state.root) : "No live payload yet"),
+        h(
+          "div",
+          { className: "dg-metric-strip" },
+          h("div", null, h("small", null, "Requests"), h("strong", null, String(selected.state.requests || 0))),
+          h("div", null, h("small", null, "Error rate"), h("strong", null, `${(selected.state.errorRate || 0).toFixed(2)}%`)),
+          h("div", null, h("small", null, "p99"), h("strong", null, `${selected.state.p99Ms || 0}ms`)),
+        ),
+      ),
+      h(
+        "article",
+        { className: "dg-raw-live" },
+        h("div", { className: "dg-section-head" }, h("strong", null, "Live payload"), h("span", null, lastCheck)),
+        h("pre", null, JSON.stringify(payload, null, 2)),
+      ),
+    ),
+    h(
+      "aside",
+      { className: "dg-sidebar" },
+      liveServices.map((service) =>
+        h(
+          "button",
+          {
+            key: service.key,
+            type: "button",
+            className: `dg-service-mini ${selected.key === service.key ? "active" : ""}`,
+            onClick: () => onSelectService(service.key),
+          },
+          h("strong", null, service.name),
+          h("span", null, service.state.root?.version || "n/a"),
+        ),
+      ),
+      h("button", { type: "button", className: "dg-action-row", onClick: () => onNavigate("home") }, h("span", null, "Back home"), h("strong", null, "→")),
+    ),
+  );
+}
+
+function TrendChart({ data, stroke, suffix }) {
+  const series = data.length ? data : [{ time: "now", value: 0 }];
+
+  return h(
+    ResponsiveContainer,
+    { width: "100%", height: 220 },
+    h(
+      LineChart,
+      { data: series, margin: { top: 10, right: 10, bottom: 0, left: -20 } },
+      h(CartesianGrid, { stroke: "rgba(255,255,255,0.07)", vertical: false }),
+      h(XAxis, { dataKey: "time", tick: { fill: "#847f90", fontSize: 11 }, tickLine: false, axisLine: false }),
+      h(YAxis, { tick: { fill: "#847f90", fontSize: 11 }, tickLine: false, axisLine: false }),
+      h(Tooltip, {
+        contentStyle: {
+          background: "#17141d",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 16,
+          color: "#f7f4ff",
+        },
+        formatter: (value) => [`${value}${suffix}`, "live"],
+      }),
+      h(Line, { type: "monotone", dataKey: "value", stroke, strokeWidth: 3, dot: false, activeDot: { r: 4 } }),
+    ),
   );
 }
 
