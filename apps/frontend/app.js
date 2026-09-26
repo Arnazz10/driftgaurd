@@ -1,6 +1,10 @@
 const { useEffect, useMemo, useState } = React;
 const {
+  Area,
+  AreaChart,
   CartesianGrid,
+  Bar,
+  BarChart,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -281,6 +285,56 @@ function App() {
   }, []);
 
   const envData = environments[environment];
+  const checkoutState = serviceState.checkout || {};
+  const paymentsState = serviceState.payments || {};
+  const checkoutSeries = metricSeries(envData.checkout.chartOffset, checkoutState);
+  const paymentsSeries = metricSeries(envData.payments.chartOffset, paymentsState);
+  const combinedRequests = (checkoutState.requests || 0) + (paymentsState.requests || 0);
+  const scanProgress = Math.min(
+    96,
+    Math.max(
+      48,
+      Math.round(58 + envData.checkout.currentStage * 0.18 + (checkoutState.errorRate || 0) * 1.4),
+    ),
+  );
+  const issueCards = [
+    {
+      title: "User issue",
+      detail: `${combinedRequests || 498} requests observed today`,
+      tone: "dim",
+      icon: "◌",
+    },
+    {
+      title: "Break issue",
+      detail: `Canary at ${envData.checkout.currentStage}% live traffic`,
+      tone: "warning",
+      icon: "⟲",
+    },
+    {
+      title: "Memory issue",
+      detail: `${checkoutState.p99Ms || envData.checkout.currentStage + 81}ms p99 on checkout`,
+      tone: "dim",
+      icon: "▣",
+    },
+    {
+      title: "Reports and order",
+      detail: `${envData.rollbacks.length} rollback notes available`,
+      tone: "dim",
+      icon: "▤",
+    },
+  ];
+  const issueHighlight = issueCards.findIndex((card) => card.tone === "warning");
+  const activityData = checkoutSeries.map((point, index) => ({
+    ...point,
+    requests: Math.round((checkoutState.requests || 210) / 4 + index * 20 + envData.checkout.chartOffset * 12),
+    assists: Math.round((paymentsState.requests || 160) / 6 + index * 12 + envData.payments.chartOffset * 10),
+  }));
+  const deviceData = paymentsSeries.map((point, index) => ({
+    ...point,
+    scans: Math.round((paymentsState.p99Ms || 160) / 3 + index * 6 + envData.payments.chartOffset * 8),
+  }));
+  const navLinks = ["Home", "Insight", "Signals", "Entities"];
+
   const payload = useMemo(
     () => ({
       environment,
@@ -293,44 +347,380 @@ function App() {
   );
 
   return h(
+    DriftguardDashboard,
+    {
+      environment,
+      onEnvironmentChange: setEnvironment,
+      onRefresh: refresh,
+      lastCheck,
+      navLinks,
+      issueCards,
+      issueHighlight,
+      activityData,
+      deviceData,
+      checkoutState,
+      paymentsState,
+      envData,
+      scanProgress,
+      combinedRequests,
+      payload,
+      checkoutSeries,
+      paymentsSeries,
+    },
+  );
+}
+
+function DriftguardDashboard({
+  environment,
+  onEnvironmentChange,
+  onRefresh,
+  lastCheck,
+  navLinks,
+  issueCards,
+  issueHighlight,
+  activityData,
+  deviceData,
+  checkoutState,
+  paymentsState,
+  envData,
+  scanProgress,
+  combinedRequests,
+  payload,
+}) {
+  return h(
     "main",
-    { className: "shell" },
+    { className: "dg-app" },
     h(
       "header",
-      { className: "topbar" },
+      { className: "dg-topbar" },
       h(
         "div",
-        null,
-        h("p", { className: "eyebrow" }, "GitOps runtime"),
-        h("h1", null, "DriftGuard"),
+        { className: "dg-brand" },
+        h("span", { className: "dg-mark", "aria-hidden": "true" }, "⛨"),
+        h(
+          "div",
+          null,
+          h("strong", null, "DriftGuard"),
+          h("span", null, "GitOps command center"),
+        ),
+      ),
+      h(
+        "label",
+        { className: "dg-search" },
+        h("span", { "aria-hidden": "true" }, "⌕"),
+        h("input", {
+          type: "search",
+          placeholder: "Search here",
+          "aria-label": "Search dashboard",
+        }),
+      ),
+      h(
+        "nav",
+        { className: "dg-nav", "aria-label": "Primary" },
+        navLinks.map((label, index) =>
+          h(
+            "button",
+            {
+              key: label,
+              type: "button",
+              className: `dg-nav-link ${index === 0 ? "active" : ""}`,
+            },
+            label,
+          ),
+        ),
       ),
       h(
         "div",
-        { className: "top-actions" },
-        h(EnvironmentTabs, { current: environment, onChange: setEnvironment }),
+        { className: "dg-tools" },
         h(
           "button",
-          { className: "icon-button", type: "button", "aria-label": "Refresh services", onClick: refresh },
-          h("span", { "aria-hidden": "true" }, "↻"),
+          { className: "dg-icon", type: "button", "aria-label": "Menu" },
+          "☰",
+        ),
+        h(
+          "button",
+          {
+            className: "dg-icon",
+            type: "button",
+            onClick: onRefresh,
+            "aria-label": "Refresh metrics",
+          },
+          "↗",
+        ),
+        h(
+          "button",
+          { className: "dg-icon", type: "button", "aria-label": "Notifications" },
+          "◔",
+        ),
+        h(
+          "button",
+          { className: "dg-avatar-chip", type: "button", "aria-label": "Profile" },
+          h("span", null, "A"),
+        ),
+        h("span", { className: "dg-caret", "aria-hidden": "true" }, "⌃"),
+      ),
+    ),
+    h(
+      "section",
+      { className: "dg-hero" },
+      h(
+        "div",
+        null,
+        h("p", { className: "dg-kicker" }, "DriftGuard overview"),
+        h("h1", null, "Hey Arnazz10!", h("br"), "Welcome Back"),
+      ),
+      h(
+        "div",
+        { className: "dg-hero-meta" },
+        h(
+          "div",
+          { className: "dg-toggle" },
+          h("span", null, "Server Requests"),
+          h("button", { type: "button", className: "dg-switch", "aria-pressed": "true" }, h("span", null, "●")),
+        ),
+        h(EnvironmentTabs, { current: environment, onChange: onEnvironmentChange }),
+      ),
+    ),
+    h(
+      "section",
+      { className: "dg-grid" },
+      h(
+        "aside",
+        { className: "dg-column dg-column-left" },
+        h(
+          "article",
+          { className: "dg-card dg-issues" },
+          h(
+            "div",
+            { className: "dg-card-head" },
+            h("div", null, h("p", { className: "dg-label" }, "Issue Detected"), h("span", null, "Solve the issue to get full recovery")),
+            h("button", { className: "dg-refresh", type: "button", onClick: onRefresh, "aria-label": "Refresh issue list" }, "↻"),
+          ),
+          h(
+            "div",
+            { className: "dg-issue-list" },
+            issueCards.map((item, index) =>
+              h(
+                "div",
+                {
+                  key: item.title,
+                  className: `dg-issue ${index === issueHighlight ? "highlight" : ""}`,
+                },
+                h(
+                  "span",
+                  { className: "dg-issue-icon" },
+                  item.icon,
+                ),
+                h(
+                  "div",
+                  null,
+                  h("strong", null, item.title),
+                  h("p", null, item.detail),
+                ),
+                h("span", { className: "dg-arrow", "aria-hidden": "true" }, "›"),
+              ),
+            ),
+          ),
+          h(
+            "div",
+            { className: "dg-alert-cta" },
+            h("span", { className: "dg-alert-pill" }, "+"),
+            h("div", null, h("strong", null, "Add to alerts"), h("p", null, "Keep the on-call stream aligned with rollback events")),
+            h("span", { className: "dg-chevrons", "aria-hidden": "true" }, "››"),
+          ),
+        ),
+      ),
+      h(
+        "section",
+        { className: "dg-column dg-column-center" },
+        h(
+          "article",
+          { className: "dg-card dg-panel" },
+          h(
+            "div",
+            { className: "dg-card-head" },
+            h("div", null, h("p", { className: "dg-label" }, "Data Activity"), h("span", null, "Viewing last 7 days chart")),
+            h("span", { className: "dg-mini-icons", "aria-hidden": "true" }, "▤ ▢"),
+          ),
+          h("strong", { className: "dg-figure" }, String(Math.round((combinedRequests || 498) / 1.6))),
+          h("p", { className: "dg-subfigure" }, "Discovered assists"),
+          h(
+            "div",
+            { className: "dg-chart-wrap" },
+            h(
+              ResponsiveContainer,
+              { width: "100%", height: 160 },
+              h(
+                BarChart,
+                { data: activityData, margin: { top: 10, right: 6, bottom: 0, left: -20 } },
+                h(CartesianGrid, { stroke: "rgba(255,255,255,0.07)", vertical: false }),
+                h(XAxis, { dataKey: "time", tick: { fill: "#847f90", fontSize: 11 }, tickLine: false, axisLine: false }),
+                h(YAxis, { tick: { fill: "#847f90", fontSize: 11 }, tickLine: false, axisLine: false }),
+                h(Tooltip, {
+                  contentStyle: {
+                    background: "#17141d",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 16,
+                    color: "#f7f4ff",
+                  },
+                }),
+                h(Bar, { dataKey: "requests", radius: [8, 8, 4, 4], fill: "url(#dg-bar)" }),
+                h(Bar, { dataKey: "assists", radius: [8, 8, 4, 4], fill: "rgba(255,255,255,0.24)" }),
+              ),
+            ),
+          ),
+        ),
+        h(
+          "article",
+          { className: "dg-card dg-panel" },
+          h(
+            "div",
+            { className: "dg-card-head" },
+            h("div", null, h("p", { className: "dg-label" }, "Data Activity"), h("span", null, "Last rollout window")),
+            h("span", { className: "dg-mini-icons", "aria-hidden": "true" }, "▤ ▢"),
+          ),
+          h("strong", { className: "dg-figure" }, String(checkoutState.p99Ms || envData.checkout.currentStage + 233)),
+          h("p", { className: "dg-subfigure" }, "Entry point breakdown"),
+          h(
+            "div",
+            { className: "dg-chart-wrap" },
+            h(
+              ResponsiveContainer,
+              { width: "100%", height: 160 },
+              h(
+                AreaChart,
+                { data: deviceData, margin: { top: 10, right: 6, bottom: 0, left: -20 } },
+                h(CartesianGrid, { stroke: "rgba(255,255,255,0.07)", vertical: false }),
+                h(XAxis, { dataKey: "time", tick: { fill: "#847f90", fontSize: 11 }, tickLine: false, axisLine: false }),
+                h(YAxis, { tick: { fill: "#847f90", fontSize: 11 }, tickLine: false, axisLine: false }),
+                h(Tooltip, {
+                  contentStyle: {
+                    background: "#17141d",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 16,
+                    color: "#f7f4ff",
+                  },
+                }),
+                h(Area, { type: "monotone", dataKey: "scans", stroke: "#9be6d4", fill: "rgba(155, 230, 212, 0.18)" }),
+              ),
+            ),
+          ),
+        ),
+        h("div", { className: "dg-bottom-rail" }, h("span", { "aria-hidden": "true" }, "⌄")),
+      ),
+      h(
+        "aside",
+        { className: "dg-column dg-column-right" },
+        h(
+          "article",
+          { className: "dg-card dg-profile" },
+          h(
+            "div",
+            { className: "dg-profile-head" },
+            h("button", { type: "button", className: "dg-profile-menu", "aria-label": "Profile menu" }, "≡"),
+            h("div", { className: "dg-profile-actions" }, h("span", null, "↗"), h("span", null, "⌫"), h("span", null, "◔")),
+            h("button", { type: "button", className: "dg-avatar-mini", "aria-label": "Current user" }, h("span", null, "A")),
+            h("span", { className: "dg-profile-caret", "aria-hidden": "true" }, "⌃"),
+          ),
+          h(
+            "div",
+            { className: "dg-ring" },
+            h("div", { className: "dg-ring-dot" }),
+            h("div", { className: "dg-ring-core" }, h("span", null, "A")),
+          ),
+          h("h3", null, "Ms. Arnazz10", h("small", null, "Admin")),
+        ),
+        h(
+          "article",
+          { className: "dg-card dg-device" },
+          h(
+            "div",
+            { className: "dg-card-head" },
+            h("div", null, h("p", { className: "dg-label" }, "My Device Reports"), h("span", null, "Viewing last 7 days chart")),
+            h("span", { className: "dg-mini-icons gold", "aria-hidden": "true" }, "▤ ▢"),
+          ),
+          h("strong", { className: "dg-figure" }, `${Math.max(18, Math.round((paymentsState.p99Ms || 163) / 7))}t`),
+          h("p", { className: "dg-subfigure" }, "You device scan time"),
+          h(
+            "div",
+            { className: "dg-device-chart" },
+            h(
+              ResponsiveContainer,
+              { width: "100%", height: 118 },
+              h(
+                LineChart,
+                { data: deviceData, margin: { top: 4, right: 8, bottom: 0, left: -18 } },
+                h(CartesianGrid, { stroke: "rgba(255,255,255,0.08)", vertical: false }),
+                h(XAxis, { dataKey: "time", tick: { fill: "#847f90", fontSize: 10 }, tickLine: false, axisLine: false }),
+                h(YAxis, { tick: { fill: "#847f90", fontSize: 10 }, tickLine: false, axisLine: false }),
+                h(Tooltip, {
+                  contentStyle: {
+                    background: "#17141d",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    borderRadius: 16,
+                    color: "#f7f4ff",
+                  },
+                }),
+                h(Line, { type: "monotone", dataKey: "scans", stroke: "#8d8df8", strokeWidth: 2.5, dot: true }),
+              ),
+            ),
+          ),
+          h(
+            "div",
+            { className: "dg-chip-grid" },
+            ["Routers", "Memory", "Scanning"].map((label, index) =>
+              h(
+                "div",
+                { key: label, className: `dg-chip ${index === 2 ? "active" : ""}` },
+                h("span", null, label),
+              ),
+            ),
+          ),
+          h(
+            "div",
+            { className: "dg-system" },
+            h("div", { className: "dg-system-head" }, h("span", null, "System scan"), h("small", null, "last scan")),
+            h(
+              "div",
+              { className: "dg-progress" },
+              h("div", { className: "dg-progress-fill", style: { width: `${scanProgress}%` } }),
+              h("span", { className: "dg-progress-glow", "aria-hidden": "true" }),
+            ),
+            h("div", { className: "dg-progress-foot" }, h("strong", null, "Progress"), h("span", null, `${scanProgress}%`)),
+          ),
         ),
       ),
     ),
     h(
       "section",
-      { className: "status-grid", "aria-label": "Service status" },
-      h(ServicePanel, {
-        config: services[0],
-        envData: envData.checkout,
-        state: serviceState.checkout,
-      }),
-      h(ServicePanel, {
-        config: services[1],
-        envData: envData.payments,
-        state: serviceState.payments,
-      }),
+      { className: "dg-footer-row" },
+      h(
+        "details",
+        { className: "dg-raw" },
+        h(
+          "summary",
+          null,
+          h("div", null, h("p", { className: "dg-label" }, "Last check"), h("h2", null, lastCheck)),
+          h("span", null, "Raw JSON status"),
+        ),
+        h("pre", null, JSON.stringify(payload, null, 2)),
+      ),
     ),
-    h(TimelinePanel, { environment, envData }),
-    h(RawJsonPanel, { lastCheck, payload }),
+    h(
+      "svg",
+      { className: "dg-defs", viewBox: "0 0 10 10", "aria-hidden": "true" },
+      h(
+        "defs",
+        null,
+        h(
+          "linearGradient",
+          { id: "dg-bar", x1: "0%", y1: "0%", x2: "100%", y2: "0%" },
+          h("stop", { offset: "0%", stopColor: "#f3d49f" }),
+          h("stop", { offset: "55%", stopColor: "#9fd8e1" }),
+          h("stop", { offset: "100%", stopColor: "#f7b56e" }),
+        ),
+      ),
+    ),
   );
 }
 
