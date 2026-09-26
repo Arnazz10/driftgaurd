@@ -387,6 +387,8 @@ function App() {
   const paymentsHistory = buildHistorySeries(historyState.payments, "requests");
   const paymentsErrorHistory = buildHistorySeries(historyState.payments, "errorRate");
   const selected = liveServices.find((service) => service.key === selectedService) || liveServices[0];
+  const activeServices = liveServices.filter((service) => service.state.online).length;
+  const liveState = activeServices === liveServices.length ? "All systems live" : `${activeServices}/${liveServices.length} services online`;
   const selectedTrend = selected.key === "checkout" ? checkoutHistory : paymentsHistory;
   const selectedErrorTrend = selected.key === "checkout" ? checkoutErrorHistory : paymentsErrorHistory;
   const selectedLatencyTrend = selected.key === "checkout" ? checkoutLatencyHistory : buildHistorySeries(historyState.payments, "p99Ms");
@@ -541,6 +543,13 @@ function DriftguardLiveApp({
       h(
         "div",
         null,
+        h(
+          "div",
+          { className: "dg-live-banner" },
+          h("span", { className: "dg-live-dot", "aria-hidden": "true" }),
+          h("span", null, liveState),
+          h("strong", null, "Running"),
+        ),
         h("p", { className: "dg-kicker" }, "Real-time DriftGuard"),
         h("h1", null, pageMeta.title),
         h("p", { className: "dg-hero-copy" }, pageMeta.description),
