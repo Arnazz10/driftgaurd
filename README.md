@@ -75,6 +75,16 @@ Stop the local services with:
 make local-down
 ```
 
+## Frontend
+
+`apps/frontend` is a zero-build static site (plain HTML/CSS/JS, no bundler) with six pages: landing, Command Center, Rollout Studio (interactive canary + blue-green with failure injection), Pipeline explorer, Services console, and Demo Playbooks.
+
+- Locally (`make local-up`), nginx proxies `/api/checkout` and `/api/payments` to the Go services and the UI runs against **live** metrics.
+- Both services expose `GET/POST /chaos?rate=0.5` to change `FAIL_RATE` at runtime and send permissive CORS headers, so a deployed UI can point at public service URLs (Services page → connection).
+- With no backend reachable (e.g. Vercel alone), the UI switches to a clearly labelled **simulation** mode.
+
+Deploy to Vercel with the project root set to `apps/frontend` (framework preset: Other, no build command).
+
 ## EKS Run
 
 ```bash
