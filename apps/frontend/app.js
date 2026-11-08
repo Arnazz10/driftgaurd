@@ -72,8 +72,8 @@
 
   /* ========================================================= TELEMETRY */
   const SERVICES = [
-    { key: "checkout", name: "checkout-svc", probe: "healthz", strategy: "canary", tone: "ember", color: "#ff5b1f", seed: 0 },
-    { key: "payments", name: "payments-svc", probe: "readyz", strategy: "blue-green", tone: "ice", color: "#8a8a8a", seed: 1 },
+    { key: "checkout", name: "checkout-svc", probe: "healthz", strategy: "canary", tone: "ember", color: "#5b8cff", seed: 0 },
+    { key: "payments", name: "payments-svc", probe: "readyz", strategy: "blue-green", tone: "ice", color: "#7d869c", seed: 1 },
   ];
   const THRESH = { err: 5, p95: 500 };
   const HISTORY = 32;
@@ -346,7 +346,7 @@
       }).join("");
       let grid = "";
       if (!spark) for (let i = 1; i < 4; i++) grid += `<line class="gridl" x1="0" x2="${w}" y1="${(h / 4) * i}" y2="${(h / 4) * i}"/>`;
-      const bodies = this.o.series.map((s, i) => `<path class="area" data-i="${i}" fill="url(#${s.gid})"/><path class="line draw-in" data-i="${i}" stroke="${s.color}"/>${spark ? "" : `<circle class="head" data-i="${i}" r="4" fill="${s.color}" stroke="#0a0a0a" stroke-width="2"/>`}`).join("");
+      const bodies = this.o.series.map((s, i) => `<path class="area" data-i="${i}" fill="url(#${s.gid})"/><path class="line draw-in" data-i="${i}" stroke="${s.color}"/>${spark ? "" : `<circle class="head" data-i="${i}" r="4" fill="${s.color}" stroke="#0a0c12" stroke-width="2"/>`}`).join("");
       this.el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><defs>${defs}</defs>${grid}<g class="thr-g"></g>${bodies}<g class="ax"></g></svg>`;
       this.svg = this.el.firstChild;
       this.draw();
@@ -527,7 +527,7 @@
                   <li>Static AWS keys live in CI secrets forever.</li>
                 </ul>
               </div>
-              <div class="drift-viz"><svg viewBox="0 0 400 90" preserveAspectRatio="none"><path d="M0 45 C100 45 200 45 400 45" stroke="#737373" stroke-dasharray="4 6" fill="none"/><path class="draw-in" d="M0 45 C80 46 140 30 200 52 S320 10 400 80" stroke="#ff5b1f" stroke-width="2.4" fill="none"/><text x="6" y="36" fill="#737373" font-size="10" font-family="JetBrains Mono">desired</text><text x="330" y="74" fill="#ff5b1f" font-size="10" font-family="JetBrains Mono">actual</text></svg></div>
+              <div class="drift-viz"><svg viewBox="0 0 400 90" preserveAspectRatio="none"><path d="M0 45 C100 45 200 45 400 45" stroke="#6b7386" stroke-dasharray="4 6" fill="none"/><path class="draw-in" d="M0 45 C80 46 140 30 200 52 S320 10 400 80" stroke="#f2b84b" stroke-width="2.4" fill="none"/><text x="6" y="36" fill="#6b7386" font-size="10" font-family="JetBrains Mono">desired</text><text x="330" y="74" fill="#f2b84b" font-size="10" font-family="JetBrains Mono">actual</text></svg></div>
             </div>
             <div class="tile good-side reveal" style="--d:.12s">
               <div>
@@ -540,7 +540,7 @@
                   <li>GitHub OIDC + IRSA — short-lived credentials only.</li>
                 </ul>
               </div>
-              <div class="drift-viz"><svg viewBox="0 0 400 90" preserveAspectRatio="none"><path d="M0 45 C100 45 200 45 400 45" stroke="#737373" stroke-dasharray="4 6" fill="none"/><path class="draw-in" d="M0 70 C60 70 90 20 150 40 S260 46 400 45" stroke="#ededed" stroke-width="2.4" fill="none"/><text x="330" y="36" fill="#ededed" font-size="10" font-family="JetBrains Mono">reconciled</text></svg></div>
+              <div class="drift-viz"><svg viewBox="0 0 400 90" preserveAspectRatio="none"><path d="M0 45 C100 45 200 45 400 45" stroke="#6b7386" stroke-dasharray="4 6" fill="none"/><path class="draw-in" d="M0 70 C60 70 90 20 150 40 S260 46 400 45" stroke="#e8ebf2" stroke-width="2.4" fill="none"/><text x="330" y="36" fill="#e8ebf2" font-size="10" font-family="JetBrains Mono">reconciled</text></svg></div>
             </div>
           </div>
         </div>
@@ -590,13 +590,13 @@
             </a>
             <div class="tile lift b-small reveal" style="--d:.06s">
               <div><div class="tile-kicker">${icon("gauge", "kpi-svg")} analysis</div><h3 class="tile-title" style="margin-top:10px">5xx gate</h3></div>
-              <div class="bento-viz"><svg class="gauge" viewBox="0 0 150 90" id="miniGauge"><path class="track" d="M15 80 A60 60 0 0 1 135 80" stroke-width="12" fill="none" stroke-linecap="round"/><path class="val" d="M15 80 A60 60 0 0 1 135 80" stroke="url(#gGrad)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5"/><defs><linearGradient id="gGrad"><stop offset="0" stop-color="#ededed"/><stop offset=".6" stop-color="#ff5b1f"/><stop offset="1" stop-color="#ff5b1f"/></linearGradient></defs><text x="75" y="72" text-anchor="middle" fill="#ededed" font-family="Inter" font-size="20" font-weight="600" id="miniGaugeVal">0%</text></svg></div>
+              <div class="bento-viz"><svg class="gauge" viewBox="0 0 150 90" id="miniGauge"><path class="track" d="M15 80 A60 60 0 0 1 135 80" stroke-width="12" fill="none" stroke-linecap="round"/><path class="val" d="M15 80 A60 60 0 0 1 135 80" stroke="url(#gGrad)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5"/><defs><linearGradient id="gGrad"><stop offset="0" stop-color="#e8ebf2"/><stop offset=".6" stop-color="#5b8cff"/><stop offset="1" stop-color="#f2b84b"/></linearGradient></defs><text x="75" y="72" text-anchor="middle" fill="#e8ebf2" font-family="Inter" font-size="20" font-weight="600" id="miniGaugeVal">0%</text></svg></div>
             </div>
             <a class="tile lift b-mid reveal" href="#/rollouts?mode=bluegreen">
               <div><div class="tile-kicker">${icon("card", "kpi-svg")} payments-svc</div><h3 class="tile-title" style="margin-top:10px">Blue-green with a human gate</h3><p class="tile-sub">Preview stack, pre-promotion analysis, manual promote, 30s scale-down delay.</p></div>
               <div class="bg-switch" id="miniBG">
                 <div class="bg-stack on"><b>blue</b>active</div>
-                <div class="bg-wire"><svg viewBox="0 0 60 40"><path d="M0 20 H60" stroke="#8a8a8a" stroke-width="2" stroke-dasharray="4 5" style="animation:flowDash .8s linear infinite"/></svg></div>
+                <div class="bg-wire"><svg viewBox="0 0 60 40"><path d="M0 20 H60" stroke="#7d869c" stroke-width="2" stroke-dasharray="4 5" style="animation:flowDash .8s linear infinite"/></svg></div>
                 <div class="bg-stack green"><b>green</b>preview</div>
               </div>
             </a>
@@ -710,7 +710,7 @@
         const [b, gr] = $$(".bg-stack", bg);
         b.classList.toggle("on", blueOn); gr.classList.toggle("on", !blueOn);
         b.lastChild.textContent = blueOn ? "active" : "preview"; gr.lastChild.textContent = blueOn ? "preview" : "active";
-        $("path", bg).setAttribute("stroke", blueOn ? "#8a8a8a" : "#ff5b1f");
+        $("path", bg).setAttribute("stroke", blueOn ? "#7d869c" : "#5b8cff");
       }, 2600);
 
       // mini heal
@@ -722,8 +722,8 @@
       }, 2200);
 
       // live charts
-      const bento = scope.chart($("#bentoChart", root), { series: [{ color: "#ff5b1f" }, { color: "#8a8a8a" }] });
-      const ls = scope.chart($("#lsChart", root), { series: [{ color: "#ff5b1f" }, { color: "#8a8a8a" }] });
+      const bento = scope.chart($("#bentoChart", root), { series: [{ color: "#5b8cff" }, { color: "#7d869c" }] });
+      const ls = scope.chart($("#lsChart", root), { series: [{ color: "#5b8cff" }, { color: "#7d869c" }] });
       const sparks = Object.fromEntries(SERVICES.map((s) => [s.key, scope.chart($(`#lsSpark-${s.key}`, root), { spark: true, series: [{ color: s.color }] })]));
       scope.sub((st, mode) => {
         const a = Telemetry.series("checkout", "rps"), b = Telemetry.series("payments", "rps");
@@ -778,11 +778,11 @@
       // lanes
       const cS = [hub[0] + S * 0.18, stable[1]], cC = [hub[0] + S * 0.18, canary[1]];
       ctx.lineWidth = 1.2;
-      ctx.strokeStyle = "rgba(140,140,140,.16)";
+      ctx.strokeStyle = "rgba(125,134,156,.16)";
       ctx.beginPath(); ctx.moveTo(...src); ctx.lineTo(...hub); ctx.stroke();
-      ctx.strokeStyle = `rgba(140,140,140,${0.12 + (1 - weight / 100) * 0.3})`;
+      ctx.strokeStyle = `rgba(125,134,156,${0.12 + (1 - weight / 100) * 0.3})`;
       ctx.beginPath(); ctx.moveTo(...hub); ctx.quadraticCurveTo(...cS, ...stable); ctx.stroke();
-      ctx.strokeStyle = `rgba(255,91,31,${0.12 + (weight / 100) * 0.4})`;
+      ctx.strokeStyle = `rgba(91,140,255,${0.12 + (weight / 100) * 0.4})`;
       ctx.beginPath(); ctx.moveTo(...hub); ctx.quadraticCurveTo(...cC, ...canary); ctx.stroke();
 
       // hub rings
@@ -790,7 +790,7 @@
       for (let i = 0; i < 3; i++) {
         const r = S * (0.09 + i * 0.045);
         ctx.rotate(rot * (i % 2 ? -0.6 : 0.4) * (i + 1) * 0.5);
-        ctx.strokeStyle = i === 1 ? "rgba(140,140,140,.45)" : "rgba(255,91,31,.5)";
+        ctx.strokeStyle = i === 1 ? "rgba(125,134,156,.45)" : "rgba(91,140,255,.5)";
         ctx.lineWidth = i === 0 ? 2 : 1;
         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * (0.6 + i * 0.25)); ctx.stroke();
         ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, Math.PI * (1.3 + i * 0.15)); ctx.stroke();
@@ -800,14 +800,14 @@
       const pulse = 1 + Math.sin(rot * 3) * 0.04 + flash * 0.25;
       ctx.scale(pulse, pulse);
       const g = ctx.createRadialGradient(0, 0, 0, 0, 0, S * 0.11);
-      g.addColorStop(0, `rgba(255,91,31,${0.35 + flash * 0.4})`); g.addColorStop(1, "rgba(255,91,31,0)");
+      g.addColorStop(0, `rgba(91,140,255,${0.35 + flash * 0.4})`); g.addColorStop(1, "rgba(91,140,255,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, S * 0.11, 0, Math.PI * 2); ctx.fill();
       const k = S * 0.0018;
       ctx.scale(k, k); ctx.translate(-20, -20);
       const sh = new Path2D("M20 3l13 5v10c0 8.5-5.4 15-13 19C12.4 33 7 26.5 7 18V8z");
-      const sg = ctx.createLinearGradient(0, 0, 40, 40); sg.addColorStop(0, "#d4d4d4"); sg.addColorStop(1, "#ff5b1f");
+      const sg = ctx.createLinearGradient(0, 0, 40, 40); sg.addColorStop(0, "#c9d1e4"); sg.addColorStop(1, "#5b8cff");
       ctx.fillStyle = sg; ctx.fill(sh);
-      ctx.strokeStyle = "#0a0a0a"; ctx.lineWidth = 3.4; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.strokeStyle = "#0a0c12"; ctx.lineWidth = 3.4; ctx.lineCap = "round"; ctx.lineJoin = "round";
       ctx.stroke(new Path2D("M14 20l4.5 4.5L27 15"));
       ctx.restore();
 
@@ -817,20 +817,20 @@
         ctx.save();
         ctx.shadowBlur = 0;
         roundRect(ctx, p[0] - w / 2, p[1] - h / 2, w, h, 14);
-        ctx.fillStyle = "rgba(16,16,16,.96)"; ctx.fill();
+        ctx.fillStyle = "rgba(15,18,26,.96)"; ctx.fill();
         ctx.shadowBlur = 0; ctx.strokeStyle = color; ctx.globalAlpha = 0.4 + glow * 0.6; ctx.lineWidth = 1.2; ctx.stroke();
         ctx.globalAlpha = 1;
-        ctx.fillStyle = "#ededed"; ctx.font = `700 ${Math.max(10, S * 0.026)}px Inter, sans-serif`; ctx.textAlign = "center";
+        ctx.fillStyle = "#e8ebf2"; ctx.font = `700 ${Math.max(10, S * 0.026)}px Inter, sans-serif`; ctx.textAlign = "center";
         ctx.fillText(label, p[0], p[1] - 1);
         ctx.fillStyle = color; ctx.font = `500 ${Math.max(9, S * 0.019)}px "JetBrains Mono", monospace`;
         ctx.fillText(sub, p[0], p[1] + S * 0.027);
         ctx.restore();
       };
-      node(stable, "stable", `v1 · ${Math.round(100 - weight)}%`, "#8a8a8a", 1 - weight / 100);
-      node(canary, "canary", `v2 · ${Math.round(weight)}%`, "#ff5b1f", weight / 100);
-      ctx.fillStyle = "#737373"; ctx.font = `500 ${Math.max(9, S * 0.02)}px "JetBrains Mono", monospace`; ctx.textAlign = "center";
+      node(stable, "stable", `v1 · ${Math.round(100 - weight)}%`, "#7d869c", 1 - weight / 100);
+      node(canary, "canary", `v2 · ${Math.round(weight)}%`, "#5b8cff", weight / 100);
+      ctx.fillStyle = "#6b7386"; ctx.font = `500 ${Math.max(9, S * 0.02)}px "JetBrains Mono", monospace`; ctx.textAlign = "center";
       ctx.fillText("users", src[0], src[1] - S * 0.04);
-      glowDot(ctx, ...src, 4, "#d4d4d4");
+      glowDot(ctx, ...src, 4, "#c9d1e4");
 
       // particles
       for (let i = parts.length - 1; i >= 0; i--) {
@@ -843,7 +843,7 @@
           if (p.err) bursts.push({ x: canary[0] - S * 0.11, y: canary[1], r: 0, a: 1 });
           parts.splice(i, 1); continue;
         }
-        const color = p.err && p.t > 1.3 ? "#ff5b1f" : p.t < 1 ? "#d4d4d4" : p.c ? "#ff5b1f" : "#8a8a8a";
+        const color = p.err && p.t > 1.3 ? "#f2b84b" : p.t < 1 ? "#c9d1e4" : p.c ? "#5b8cff" : "#7d869c";
         if (p.px !== null) {
           ctx.strokeStyle = color; ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(...pos); ctx.stroke(); ctx.globalAlpha = 1;
@@ -854,12 +854,12 @@
       for (let i = bursts.length - 1; i >= 0; i--) {
         const b = bursts[i]; b.r += dt * 60; b.a -= dt * 1.6;
         if (b.a <= 0) { bursts.splice(i, 1); continue; }
-        ctx.strokeStyle = `rgba(255,77,106,${b.a})`; ctx.lineWidth = 1.5;
+        ctx.strokeStyle = `rgba(242,184,75,${b.a})`; ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke();
       }
       if (flash > 0) {
         ctx.globalAlpha = Math.min(1, flash * 1.5);
-        ctx.fillStyle = "#ededed"; ctx.font = `800 ${S * 0.04}px Inter, sans-serif`; ctx.textAlign = "center";
+        ctx.fillStyle = "#e8ebf2"; ctx.font = `800 ${S * 0.04}px Inter, sans-serif`; ctx.textAlign = "center";
         ctx.fillText("promoted", hub[0], hub[1] + S * 0.2);
         ctx.globalAlpha = 1;
       }
@@ -959,7 +959,7 @@
             <div class="tile-head"><div><span class="tile-kicker">${icon("card", "kpi-svg")} payments-svc · ${env}</span><h3 class="tile-title" style="margin-top:8px">Blue-green</h3></div><span class="chip mono">#${d.payments.commit}</span></div>
             <div class="bg-switch">
               <div class="bg-stack on"><b>${d.payments.active}</b>active</div>
-              <div class="bg-wire"><svg viewBox="0 0 60 40"><path d="M0 20 H60" stroke="${d.payments.previewState === "idle" ? "#404040" : "#ff5b1f"}" stroke-width="2" stroke-dasharray="4 5" style="animation:flowDash 1s linear infinite"/></svg></div>
+              <div class="bg-wire"><svg viewBox="0 0 60 40"><path d="M0 20 H60" stroke="${d.payments.previewState === "idle" ? "#3a4152" : "#5b8cff"}" stroke-width="2" stroke-dasharray="4 5" style="animation:flowDash 1s linear infinite"/></svg></div>
               <div class="bg-stack green ${d.payments.previewState !== "idle" ? "on" : ""}"><b>${d.payments.preview}</b>${d.payments.previewState}</div>
             </div>
             <div class="timeline" style="margin-top:18px">${d.payments.timeline.map(([t, s, time, state]) => `<div class="tl-item ${state}"><span class="tl-dot"></span><div><b>${t}</b><span>${s}</span></div><time>${time}</time></div>`).join("")}</div>
@@ -977,10 +977,10 @@
       requestAnimationFrame(placePill);
 
       const ks = {
-        rps: scope.chart($("#ks-rps", root), { spark: true, series: [{ color: "#ff5b1f" }] }),
-        err: scope.chart($("#ks-err", root), { spark: true, series: [{ color: "#ff5b1f" }], threshold: THRESH.err, minMax: 1 }),
-        lat: scope.chart($("#ks-lat", root), { spark: true, series: [{ color: "#8a8a8a" }] }),
-        online: scope.chart($("#ks-online", root), { spark: true, series: [{ color: "#ededed" }] }),
+        rps: scope.chart($("#ks-rps", root), { spark: true, series: [{ color: "#5b8cff" }] }),
+        err: scope.chart($("#ks-err", root), { spark: true, series: [{ color: "#f2b84b" }], threshold: THRESH.err, minMax: 1 }),
+        lat: scope.chart($("#ks-lat", root), { spark: true, series: [{ color: "#7d869c" }] }),
+        online: scope.chart($("#ks-online", root), { spark: true, series: [{ color: "#e8ebf2" }] }),
       };
       const charts = Object.fromEntries(SERVICES.map((s) => [s.key, scope.chart($(`#d-chart-${s.key}`, root), { series: [{ color: s.color }], unit: " r/s" })]));
 
@@ -1249,26 +1249,26 @@
       ctx.clearRect(0, 0, W, H);
       const src = [24, H / 2], hub = [W * 0.32, H / 2], top = [W - 70, H * 0.24], bot = [W - 70, H * 0.76];
       ctx.lineWidth = 1.2;
-      ctx.strokeStyle = "rgba(140,140,140,.18)"; ctx.beginPath(); ctx.moveTo(...src); ctx.lineTo(...hub); ctx.stroke();
-      ctx.strokeStyle = `rgba(140,140,140,${0.15 + (1 - S.shown / 100) * 0.4})`; ctx.beginPath(); ctx.moveTo(...hub); ctx.quadraticCurveTo(W * 0.6, top[1], ...top); ctx.stroke();
-      ctx.strokeStyle = `rgba(255,91,31,${0.12 + (S.shown / 100) * 0.5})`; ctx.beginPath(); ctx.moveTo(...hub); ctx.quadraticCurveTo(W * 0.6, bot[1], ...bot); ctx.stroke();
+      ctx.strokeStyle = "rgba(125,134,156,.18)"; ctx.beginPath(); ctx.moveTo(...src); ctx.lineTo(...hub); ctx.stroke();
+      ctx.strokeStyle = `rgba(125,134,156,${0.15 + (1 - S.shown / 100) * 0.4})`; ctx.beginPath(); ctx.moveTo(...hub); ctx.quadraticCurveTo(W * 0.6, top[1], ...top); ctx.stroke();
+      ctx.strokeStyle = `rgba(91,140,255,${0.12 + (S.shown / 100) * 0.5})`; ctx.beginPath(); ctx.moveTo(...hub); ctx.quadraticCurveTo(W * 0.6, bot[1], ...bot); ctx.stroke();
       acc += dt * 36;
       while (acc > 1) { acc--; const c = Math.random() * 100 < S.shown; parts.push({ t: 0, c, sp: rand(0.6, 0.9), err: c && failEl.checked && Math.random() < 0.5 }); }
       for (let i = parts.length - 1; i >= 0; i--) {
         const p = parts[i]; p.t += dt * p.sp;
         if (p.t >= 2) { parts.splice(i, 1); continue; }
         const pos = p.t < 1 ? [lerp(src[0], hub[0], p.t), hub[1]] : qBez(hub, [W * 0.6, p.c ? bot[1] : top[1]], p.c ? bot : top, p.t - 1);
-        glowDot(ctx, pos[0], pos[1], 2.4, p.err && p.t > 1.5 ? "#ff5b1f" : p.t < 1 ? "#d4d4d4" : p.c ? "#ff5b1f" : "#8a8a8a");
+        glowDot(ctx, pos[0], pos[1], 2.4, p.err && p.t > 1.5 ? "#f2b84b" : p.t < 1 ? "#c9d1e4" : p.c ? "#5b8cff" : "#7d869c");
       }
       const lbl = (p, a, b, c) => {
-        roundRect(ctx, p[0] - 58, p[1] - 22, 116, 44, 12); ctx.fillStyle = "rgba(16,16,16,.96)"; ctx.fill(); ctx.strokeStyle = c; ctx.stroke();
-        ctx.textAlign = "center"; ctx.fillStyle = "#ededed"; ctx.font = "700 12px Inter, sans-serif"; ctx.fillText(a, p[0], p[1] - 2);
+        roundRect(ctx, p[0] - 58, p[1] - 22, 116, 44, 12); ctx.fillStyle = "rgba(15,18,26,.96)"; ctx.fill(); ctx.strokeStyle = c; ctx.stroke();
+        ctx.textAlign = "center"; ctx.fillStyle = "#e8ebf2"; ctx.font = "700 12px Inter, sans-serif"; ctx.fillText(a, p[0], p[1] - 2);
         ctx.fillStyle = c; ctx.font = "500 10px 'JetBrains Mono', monospace"; ctx.fillText(b, p[0], p[1] + 13);
       };
-      lbl(top, "stable v1", `${Math.round(100 - S.shown)}% traffic`, "#8a8a8a");
-      lbl(bot, "canary v2", `${Math.round(S.shown)}% traffic`, "#ff5b1f");
-      glowDot(ctx, ...hub, 6, "#ff5b1f");
-      ctx.fillStyle = "#737373"; ctx.font = "500 10px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.fillText("service", hub[0], hub[1] - 16);
+      lbl(top, "stable v1", `${Math.round(100 - S.shown)}% traffic`, "#7d869c");
+      lbl(bot, "canary v2", `${Math.round(S.shown)}% traffic`, "#5b8cff");
+      glowDot(ctx, ...hub, 6, "#5b8cff");
+      ctx.fillStyle = "#6b7386"; ctx.font = "500 10px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.fillText("service", hub[0], hub[1] - 16);
     });
     paintSteps(); paintPods();
   }
@@ -1287,7 +1287,7 @@
               <path class="wire" id="wBlue" d="M70 110 C40 110 30 110 0 110"/>
               <path class="wire" id="wGreen" d="M70 110 C100 110 110 110 140 110"/>
               <circle class="hub" cx="70" cy="110" r="18"/><text x="70" y="114" text-anchor="middle">LB</text>
-              <path class="wire live" d="M70 0 V92" style="stroke:#d4d4d4"/><text x="76" y="14">users</text>
+              <path class="wire live" d="M70 0 V92" style="stroke:#c9d1e4"/><text x="76" y="14">users</text>
             </svg></div>
             <div class="bg-env green" id="envGreen"><h4>Green <span class="chip ember" id="tagGreen">—</span></h4><div class="podrow">${"<i></i>".repeat(3)}</div><span class="muted mono" style="font-size:12px" id="roleGreen">idle</span></div>
           </div>
@@ -1441,7 +1441,7 @@
           <div class="pipe-wrap">
             <div class="tile pipe-canvas reveal" id="pCanvas">
               <div class="pipe-cluster" id="pCluster"></div>
-              <svg class="edges" id="pEdges"><defs><linearGradient id="edgeGrad" x1="0" x2="1"><stop offset="0" stop-color="#ff5b1f"/><stop offset="1" stop-color="#8a8a8a"/></linearGradient></defs></svg>
+              <svg class="edges" id="pEdges"><defs><linearGradient id="edgeGrad" x1="0" x2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset="1" stop-color="#7d869c"/></linearGradient></defs></svg>
               <div class="pnode cluster-label" id="pClusterLabel">AWS EKS</div>
               ${Object.entries(NODES).map(([id, n]) => `<button type="button" class="pnode ${n.cool ? "cool" : ""}" data-id="${id}" style="left:calc(84px + (100% - 168px) * ${n.x / 100});top:calc(78px + (100% - 150px) * ${n.y / 100})"><span class="pi">${icon(n.ic)}</span><b>${n.t}</b><span>${n.s}</span></button>`).join("")}
             </div>
